@@ -1,19 +1,14 @@
-// src/Components/Layout/Header.jsx
-import  { useState, useEffect, useRef, Fragment } from "react";
+import { useState, useEffect, useRef, Fragment } from "react";
 import { Link, Link as RouterLink } from "react-router-dom";
 import { Link as MuiLink } from "@mui/material";
 import { useDispatch, useSelector } from "react-redux";
-import {
-  fetchCompanyInfo,
-} from "../../redux/slices/companyDetailsSlices";
+import { fetchCompanyInfo } from "../../redux/slices/companyDetailsSlices";
 import { fetchWishlistItems } from "../../redux/slices/wishlistSlices";
 import { fetchCartItems } from "../../redux/slices/cartSlices";
 import { fetchCategories } from "../../redux/slices/categorySlices";
 import { fetchBanners } from "../../redux/slices/BannerEventSlices";
-
 import TopNav from "./TopNav";
 import IconSection from "./HeaderIconSection";
-
 import {
   IconButton,
   Drawer,
@@ -25,21 +20,24 @@ import {
   useTheme,
   useMediaQuery,
 } from "@mui/material";
-
 import MenuIcon from "@mui/icons-material/Menu";
 import CloseIcon from "@mui/icons-material/Close";
 import ExpandLess from "@mui/icons-material/ExpandLess";
 import ExpandMore from "@mui/icons-material/ExpandMore";
+import { HeaderSkeleton, HeaderSkeletonMobile } from "../Loader/SkeletonLoader";
 
 const Header = () => {
   const dispatch = useDispatch();
   const { user } = useSelector((s) => s.user);
-  const { companys } = useSelector((s) => s.company);
-  const { categories } = useSelector((s) => s.categories);
-  const { banners } = useSelector((s) => s.bannerEvent);
+  const { companys, loading: companyLoading } = useSelector((s) => s.company);
+  const { categories, loading: categoryLoading } = useSelector((s) => s.categories);
+  const { banners, loading: bannerLoading } = useSelector((s) => s.bannerEvent);
 
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
+
+  // Loading state management
+  const [isLoaded, setIsLoaded] = useState(false);
 
   // Desktop hover dropdown
   const [hoveredCat, setHoveredCat] = useState(null);
@@ -58,12 +56,29 @@ const Header = () => {
     dispatch(fetchBanners());
   }, [dispatch, user?._id]);
 
+  // Check if all essential data is loaded
+  useEffect(() => {
+    const isDataLoaded =
+      !companyLoading &&
+      !categoryLoading &&
+      !bannerLoading &&
+      companys?.length > 0 &&
+      categories?.length > 0;
+
+    if (isDataLoaded) {
+      // Minimum display time to prevent flickering
+      const timer = setTimeout(() => setIsLoaded(true), 400);
+      return () => clearTimeout(timer);
+    }
+  }, [companyLoading, categoryLoading, bannerLoading, companys, categories]);
+
   // Desktop hover handlers
   const onMouseEnter = (catId) => {
     clearTimeout(hoverTimeout.current);
     setHoveredCat(catId);
     setDropdownOpen(true);
   };
+
   const onMouseLeave = () => {
     hoverTimeout.current = setTimeout(() => {
       setDropdownOpen(false);
@@ -75,6 +90,11 @@ const Header = () => {
   const handleExpand = (catId) => {
     setExpandedCat((prev) => (prev === catId ? null : catId));
   };
+
+  // Show skeleton loader while loading
+  if (!isLoaded) {
+    return isMobile ? <HeaderSkeletonMobile /> : <HeaderSkeleton />;
+  }
 
   return (
     <header>
@@ -91,13 +111,14 @@ const Header = () => {
                     key={c._id}
                     src={c.logo[0].url}
                     alt={c.name || "Logo"}
+                    loading="eager"
                   />
                 ) : null
               )}
             </Link>
           </div>
 
-          {/* Desktop nav stays unchanged */}
+          {/* Desktop Navigation */}
           {!isMobile && (
             <nav className="middle">
               <ul className="nav-list">
@@ -108,9 +129,7 @@ const Header = () => {
                     onMouseEnter={() => onMouseEnter(cat._id)}
                     onMouseLeave={onMouseLeave}
                   >
-                    <Link to={`/products?category=${cat._id}`}>
-                      {cat.name}
-                    </Link>
+                    <Link to={`/products?category=${cat._id}`}>{cat.name}</Link>
                   </li>
                 ))}
                 <li className="nav-item active">
@@ -124,20 +143,10 @@ const Header = () => {
             </nav>
           )}
 
-          {/* Right‐hand icons */}
+          {/* Right-hand icons */}
           <IconSection />
 
           {/* Mobile menu button */}
-          {/* {isMobile && (
-            <IconButton
-              onClick={() => setDrawerOpen(true)}
-              sx={{ ml: 1 }}
-              aria-label="Open menu"
-            >
-              <MenuIcon />
-            </IconButton>
-          )} */}
-
           {isMobile && (
             <IconButton
               onClick={() => setDrawerOpen((prev) => !prev)}
@@ -159,8 +168,8 @@ const Header = () => {
             <div className="dropdown-content">
               <div className="dropdown-sections">
                 {(
-                  categories.find((c) => c._id === hoveredCat)
-                    ?.subcategories || []
+                  categories.find((c) => c._id === hoveredCat)?.subcategories ||
+                  []
                 ).map((sub) => (
                   <div className="dropdown-section" key={sub._id}>
                     <h4>{sub.name}</h4>
@@ -192,7 +201,7 @@ const Header = () => {
           },
         }}
         ModalProps={{
-          keepMounted: true, // better performance on mobile
+          keepMounted: true,
         }}
       >
         <Box sx={{ width: 280, p: 2, pt: 5 }}>
@@ -217,7 +226,7 @@ const Header = () => {
                   unmountOnExit
                 >
                   <List component="div" disablePadding>
-                    {cat.subcategories.map((sub) => (
+                    {cat.subcategories?.map((sub) => (
                       <ListItem
                         key={sub._id}
                         button
@@ -226,11 +235,13 @@ const Header = () => {
                         to={`/products?subcategory=${sub._id}`}
                         onClick={() => setDrawerOpen(false)}
                       >
-                        <ListItemText sx={{
-                          color: "#514c4c",
-                          textDecoration: "none",
-                          
-                        }} primary={sub.name} />
+                        <ListItemText
+                          sx={{
+                            color: "#514c4c",
+                            textDecoration: "none",
+                          }}
+                          primary={sub.name}
+                        />
                       </ListItem>
                     ))}
                   </List>
@@ -238,7 +249,7 @@ const Header = () => {
               </Fragment>
             ))}
 
-            {/* Optional: event campaigns in mobile menu */}
+            {/* Event campaigns in mobile menu */}
             <ListItem>
               <ListItemText
                 primary={
@@ -252,7 +263,7 @@ const Header = () => {
                         sx={{
                           color: "#c8102e",
                           textDecoration: "none",
-                          "&:hover": { textDecoration: "underline" }
+                          "&:hover": { textDecoration: "underline" },
                         }}
                       >
                         {evt.title}
