@@ -3,14 +3,15 @@ import { Pagination, Autoplay } from "swiper/modules";
 import "swiper/css";
 import "swiper/css/pagination";
 import { useDispatch, useSelector } from "react-redux";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { fetchBanners } from "../../../redux/slices/bannerSlices";
 import { fetchBannerss } from "../../../redux/slices/bannersSlices";
-
+import { BannerSkeleton } from "../../../Components/Loader/SkeletonLoader";
 
 const Banner = () => {
     const dispatch = useDispatch();
-    const { banners: bannerss } = useSelector((state) => state.bannerss);
+    const { banners: bannerss, loading } = useSelector((state) => state.bannerss);
+    const [isLoaded, setIsLoaded] = useState(false);
 
     useEffect(() => {
         dispatch(fetchBanners());
@@ -20,61 +21,42 @@ const Banner = () => {
         dispatch(fetchBannerss());
     }, [dispatch]);
 
+    useEffect(() => {
+        // Minimum loading time to prevent flickering
+        if (!loading && bannerss?.length > 0) {
+            const timer = setTimeout(() => setIsLoaded(true), 300);
+            return () => clearTimeout(timer);
+        }
+    }, [loading, bannerss]);
 
+    if (!isLoaded || loading || !bannerss?.length) {
+        return <BannerSkeleton />;
+    }
 
     return (
         <section className="banner-section">
             <div className="banner-container">
-                {/* 🚀 Left Content Section */}
-
-                {/* <div className="banner-content">
-                    <Swiper
-                        modules={[Pagination, Autoplay]}
-                        spaceBetween={20}
-                        slidesPerView={1}
-                        pagination={{ clickable: true }}
-                        loop={true}
-                        autoplay={{
-                            delay: 2500,
-                            disableOnInteraction: false,
-                        }}
-                        speed={800}
-                    >
-                        {banners.flatMap((banner) =>
-                            banner.photos.map((photo, index) => (
-                                <SwiperSlide key={photo._id}>
-                                    <img
-                                        src={photo.url}
-                                        alt={`Fashion Slide ${index + 1}`}
-                                        className="banner-img"
-                                    />
-                                </SwiperSlide>
-                            ))
-                        )}
-                    </Swiper>
-                </div> */}
-
-                {/* 🖼️ Right Image Section - Infinite Slider */}
                 <div className="banner-image">
                     <Swiper
                         modules={[Pagination, Autoplay]}
                         spaceBetween={20}
                         slidesPerView={1}
                         pagination={{ clickable: true }}
-                        loop={false}
+                        loop={bannerss.length > 1}
                         autoplay={{
                             delay: 2500,
                             disableOnInteraction: false,
                         }}
                         speed={800}
                     >
-                        {bannerss?.flatMap((bannerss) =>
-                            bannerss.photos.map((photo, index) => (
+                        {bannerss.flatMap((banner) =>
+                            banner.photos.map((photo) => (
                                 <SwiperSlide key={photo._id}>
                                     <img
                                         src={photo.url}
-                                        alt={`Fashion Slide ${index + 1}`}
+                                        alt={`Banner ${photo._id}`}
                                         className="banner-img"
+                                        loading="lazy"
                                     />
                                 </SwiperSlide>
                             ))
