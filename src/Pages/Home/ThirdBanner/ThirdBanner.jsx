@@ -1,29 +1,41 @@
 import { useDispatch, useSelector } from "react-redux";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { fetchThirdBanners } from "../../../redux/slices/thirdBannerSlices";
-import {useNavigate} from "react-router-dom"
+import { useNavigate } from "react-router-dom";
+import { ThirdBannerSkeleton } from "../../../Components/Loader/SkeletonLoader";
 
 const ThirdBanner = () => {
     const dispatch = useDispatch();
-    const navigate = useNavigate()
+    const navigate = useNavigate();
+    const [isLoaded, setIsLoaded] = useState(false);
 
-    const { thirdBanners } = useSelector((state) => (state.thirdbanners));
+    const { thirdBanners, loading } = useSelector((state) => state.thirdbanners);
 
     useEffect(() => {
-        dispatch(fetchThirdBanners())
-    }, [dispatch])
+        dispatch(fetchThirdBanners());
+    }, [dispatch]);
+
+    useEffect(() => {
+        if (!loading && thirdBanners?.length > 0) {
+            const timer = setTimeout(() => setIsLoaded(true), 300);
+            return () => clearTimeout(timer);
+        }
+    }, [loading, thirdBanners]);
 
     const HandleUrl = () => {
-        navigate("/products")
+        navigate("/products");
+    };
+
+    if (!isLoaded || loading || !thirdBanners?.length) {
+        return <ThirdBannerSkeleton />;
     }
 
     return (
         <section className="third-banner">
             {thirdBanners.map((banner) => (
-                <>
+                <div key={banner._id}>
                     <div className="container">
-                        <img src={banner.photos[0]?.url} alt="banner" />
-
+                        <img src={banner.photos[0]?.url} alt="banner" loading="lazy" />
 
                         <div className="new-to-website">
                             <div className="row">
@@ -41,35 +53,21 @@ const ThirdBanner = () => {
                             </div>
                         </div>
 
-                        <img src={banner.photos[1]?.url} alt="banners" />
+                        <img src={banner.photos[1]?.url} alt="banners" loading="lazy" />
 
-                        {/* <div className="bags-content">
-                            <h1>Essentially effortless.</h1>
-                            <p>The Leather Alternative Mini Bag - storage and style for everywhere you go.</p>
-                            <button>Shop bags</button>
-                        </div> */}
-
-                        {/* section img3 */}
                         <div className="img3">
-                            <img src={banner.photos[2]?.url} alt="banners" />
+                            <img src={banner.photos[2]?.url} alt="banners" loading="lazy" />
                             <div className="contents">
                                 <h1>Essentially effortless.</h1>
                                 <p>The Leather Alternative Mini Bag - storage and style for everywhere you go.</p>
                                 <button onClick={HandleUrl}>Shop bags</button>
                             </div>
-
                         </div>
-
-
-
                     </div>
-                </>
+                </div>
             ))}
-
-
-
         </section>
-    )
-}
+    );
+};
 
-export default ThirdBanner
+export default ThirdBanner;
