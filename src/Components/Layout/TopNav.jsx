@@ -1,83 +1,107 @@
 import { Mail, Phone } from "@mui/icons-material";
 import { FaFacebook, FaInstagram, FaTiktok, FaYoutube } from "react-icons/fa";
 import { useSelector } from "react-redux";
-import { Skeleton } from "@mui/material";
+import { useState, useEffect } from "react";
+import { useMediaQuery, useTheme } from "@mui/material";
+import { TopNavSkeleton, TopNavSkeletonMobile } from "../Loader/SkeletonLoader";
 
 const TopNav = ({ showTopNav }) => {
-  // Pull both the list and loading flag from Redux
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+
   const { companys, loading } = useSelector((state) => state.company);
+  const [isLoaded, setIsLoaded] = useState(false);
+
+  useEffect(() => {
+    // Add minimum loading time to prevent flickering
+    if (!loading && companys?.length > 0) {
+      const timer = setTimeout(() => setIsLoaded(true), 300);
+      return () => clearTimeout(timer);
+    }
+  }, [loading, companys]);
 
   if (!showTopNav) return null;
 
+  // Show skeleton loader while loading
+  if (!isLoaded || loading || !companys?.length) {
+    return isMobile ? <TopNavSkeletonMobile /> : <TopNavSkeleton />;
+  }
+
   return (
     <nav className="wapper-header">
-      {loading
-        ? // Single skeleton row
-          <div className="nav">
-            <div className="nav-div">
-              <ul className="nav-ul" style={{ display: 'flex', gap: '1rem' }}>
-                <li className="nav-li" style={{ display: 'flex', alignItems: 'center', gap: '.25rem' }}>
+      {companys.map((com) => (
+        <div className="nav" key={com._id}>
+          <div className="nav-div">
+            <ul className="nav-ul">
+              {com.phone && (
+                <li className="nav-li">
                   <Phone />
-                  <Skeleton width={100} height={20} />
+                  <span className="nav-span">{com.phone}</span>
                 </li>
-                <li className="nav-li" style={{ display: 'flex', alignItems: 'center', gap: '.25rem' }}>
+              )}
+              {com.email && (
+                <li className="nav-li">
                   <Mail />
-                  <Skeleton width={150} height={20} />
+                  <span className="nav-span">{com.email}</span>
                 </li>
-              </ul>
-            </div>
-            <div className="social-div">
-              <ul className="social-media" style={{ display: 'flex', gap: '0.5rem' }}>
-                {Array.from({length:4}).map((_, i) => (
-                  <li key={i} className="link">
-                    <Skeleton variant="circular" width={22} height={22} />
-                  </li>
-                ))}
-              </ul>
-            </div>
+              )}
+            </ul>
           </div>
-        : // Real data
-          companys.map((com, idx) => (
-            <div className="nav" key={idx}>
-              <div className="nav-div">
-                <ul className="nav-ul">
-                  <li className="nav-li">
-                    <Phone />
-                    <span className="nav-span">{com.phone || ""}</span>
-                  </li>
-                  <li className="nav-li">
-                    <Mail />
-                    <span className="nav-span">{com.email || ""}</span>
-                  </li>
-                </ul>
-              </div>
-              <div className="social-div">
-                <ul className="social-media">
-                  <li className="link" style={{ display: 'flex', alignItems: 'center', gap: '.25rem' }}>
-                    <a href={com.facebook} target="_blank" rel="noopener noreferrer">
-                      <FaFacebook style={{ fontSize: "1rem" }} />
-                    </a>
-                  </li>
-                  <li className="link" style={{ display: 'flex', alignItems: 'center', gap: '.25rem' }}>
-                    <a href={com.instagram} target="_blank" rel="noopener noreferrer">
-                      <FaInstagram style={{ fontSize: "1rem" }} />
-                    </a>
-                  </li>
-                  <li className="link" style={{ display: 'flex', alignItems: 'center', gap: '.25rem' }}>
-                    <a href={com.twitter} target="_blank" rel="noopener noreferrer">
-                      <FaTiktok style={{ fontSize: "1rem" }} />
-                    </a>
-                  </li>
-                  <li className="link" style={{ display: 'flex', alignItems: 'center', gap: '.25rem' }}>
-                    <a href={com.linkedin} target="_blank" rel="noopener noreferrer">
-                      <FaYoutube style={{ fontSize: "1rem" }} />
-                    </a>
-                  </li>
-                </ul>
-              </div>
-            </div>
-          ))
-      }
+
+          <div className="social-div">
+            <ul className="social-media">
+              {com.facebook && (
+                <li className="link">
+                  <a
+                    href={com.facebook}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label="Facebook"
+                  >
+                    <FaFacebook style={{ fontSize: "1rem" }} />
+                  </a>
+                </li>
+              )}
+              {com.instagram && (
+                <li className="link">
+                  <a
+                    href={com.instagram}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label="Instagram"
+                  >
+                    <FaInstagram style={{ fontSize: "1rem" }} />
+                  </a>
+                </li>
+              )}
+              {com.twitter && (
+                <li className="link">
+                  <a
+                    href={com.twitter}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label="TikTok"
+                  >
+                    <FaTiktok style={{ fontSize: "1rem" }} />
+                  </a>
+                </li>
+              )}
+              {com.linkedin && (
+                <li className="link">
+                  <a
+                    href={com.linkedin}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label="YouTube"
+                  >
+                    <FaYoutube style={{ fontSize: "1rem" }} />
+                  </a>
+                </li>
+              )}
+            </ul>
+          </div>
+        </div>
+      ))}
     </nav>
   );
 };
